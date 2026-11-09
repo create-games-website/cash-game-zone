@@ -1,0 +1,276 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cash's Game Zone</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#080d13;color:white;font-family:Arial,sans-serif}
+header{text-align:center;padding:25px;background:#101b23;border-bottom:3px solid #39ff68}
+header h1{color:#39ff68;font-size:34px;margin:0}
+nav{display:flex;justify-content:center;flex-wrap:wrap;gap:9px;padding:15px}
+button{background:#17242e;color:white;border:1px solid #39ff68;padding:11px 15px;border-radius:8px;cursor:pointer}
+button:hover{background:#245b36}
+main{max-width:1200px;margin:auto;padding:16px}
+input{width:100%;padding:15px;background:#17242e;color:white;border:1px solid #39ff68;border-radius:8px;font-size:16px}
+h2{color:#39ff68}
+.games{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:15px}
+.card{background:#14212b;border:1px solid #263c49;border-radius:12px;padding:18px;text-align:center}
+.card:hover{border-color:#39ff68}
+.emoji{font-size:45px}
+.card button{width:100%;margin-top:8px}
+.play{background:#39ff68;color:#07100a;font-weight:bold}
+.panel{max-width:550px;margin:35px auto;background:#14212b;padding:25px;border:1px solid #39ff68;border-radius:16px;text-align:center}
+.question{font-size:35px;color:#39ff68;margin:25px}
+.hidden{display:none!important}
+.progress{background:#263c49;height:10px;border-radius:10px;overflow:hidden}
+.bar{background:#39ff68;height:10px;width:0%}
+footer{text-align:center;padding:30px;color:#39ff68}
+</style>
+</head>
+<body>
+
+<header>
+<h1>🎮 CASH'S GAME ZONE</h1>
+<p>YOUR NEXT GAME STARTS HERE!</p>
+<p>⭐ OWNED BY CASH ⭐</p>
+</header>
+
+<section id="challenge" class="panel">
+<h2>🧮 MATH CHALLENGE</h2>
+<p>Solve all 50 levels to unlock the game library!</p>
+<p id="level">LEVEL 1 OF 50</p>
+<div class="progress"><div id="bar" class="bar"></div></div>
+<div id="question" class="question"></div>
+<p>Enter your math answer and secret code together in ONE box.</p>
+<input id="combined" placeholder="Enter your answer and code together">
+<br><br>
+<button class="play" onclick="checkAnswer()">SUBMIT ANSWER</button>
+<p id="feedback" aria-live="polite"></p>
+</section>
+
+<div id="website" class="hidden">
+<nav>
+<button onclick="showCategory('All')">All Games</button>
+<button onclick="showCategory('Shooting')">🎯 Shooting</button>
+<button onclick="showCategory('Racing')">🏎️ Racing</button>
+<button onclick="showCategory('Sports')">🏀 Sports</button>
+<button onclick="showCategory('Adventure')">🗺️ Adventure</button>
+<button onclick="showCategory('Puzzle')">🧩 Puzzle</button>
+<button onclick="showCategory('Arcade')">👾 Arcade</button>
+<button onclick="showCategory('Fighting')">🥊 Fighting</button>
+<button onclick="showFavorites()">❤️ Favorites</button>
+</nav>
+
+<main>
+<input id="search" placeholder="🔎 Search games..." oninput="renderGames()">
+<h2 id="heading">🔥 ALL GAMES</h2>
+<div class="games" id="games"></div>
+
+<h2>🌟 OFFICIAL GAME WEBSITES</h2>
+<div class="games" id="official"></div>
+</main>
+</div>
+
+<footer>
+<h2>CASH'S GAME ZONE</h2>
+<p>Made for fun | Owned by Cash</p>
+</footer>
+
+<script>
+// 50 math questions
+const questions=[
+["5 + 7",12],["15 - 6",9],["8 × 4",32],["36 ÷ 6",6],["19 + 23",42],
+["45 - 18",27],["9 × 7",63],["72 ÷ 8",9],["34 + 29",63],["100 - 46",54],
+["12 × 6",72],["144 ÷ 12",12],["56 + 78",134],["95 - 37",58],["11 × 11",121],
+["156 ÷ 12",13],["25 + 86",111],["200 - 75",125],["14 × 8",112],["225 ÷ 15",15],
+["1/2 + 1/2",1],["0.5 + 0.5",1],["3/4 + 1/4",1],["2.5 + 1.5",4],["10% of 100",10],
+["15 + 27",42],["18 × 5",90],["240 ÷ 8",30],["125 + 175",300],["500 - 225",275],
+["16 × 7",112],["324 ÷ 9",36],["67 + 89",156],["300 - 148",152],["13 × 12",156],
+["400 ÷ 16",25],["45 × 3",135],["625 ÷ 25",25],["999 - 444",555],["123 + 456",579],
+["20 × 15",300],["840 ÷ 20",42],["75 + 125",200],["1000 - 375",625],["24 × 9",216],
+["960 ÷ 12",80],["35 × 11",385],["720 ÷ 9",80],["250 + 350",600],["1000 - 275",725]
+];
+
+// Change this to your chosen secret code.
+// The math answer and code must be entered together.
+const SECRET_CODE="hello jarvis";
+
+let current=0;
+let category="All";
+let favorites=JSON.parse(localStorage.getItem("cashFavorites")||"[]");
+
+function displayQuestion(){
+ document.getElementById("level").textContent=
+ "LEVEL "+(current+1)+" OF 50";
+ document.getElementById("question").textContent=
+ questions[current][0]+" = ?";
+ document.getElementById("bar").style.width=
+ (current/50*100)+"%";
+ document.getElementById("combined").value="";
+}
+
+function checkAnswer(){
+ const value=document.getElementById("combined").value.trim().toLowerCase();
+ const expected=String(questions[current][1])+SECRET_CODE;
+ const feedback=document.getElementById("feedback");
+
+ if(value!==expected){
+  feedback.textContent="Incorrect! Check your math answer and secret code.";
+  feedback.style.color="#ff7777";
+  return;
+ }
+
+ current++;
+ if(current>=50){
+  document.getElementById("challenge").classList.add("hidden");
+  document.getElementById("website").classList.remove("hidden");
+  document.getElementById("bar").style.width="100%";
+  renderGames();
+  renderOfficial();
+ }else{
+  feedback.textContent="Correct! Next level unlocked!";
+  feedback.style.color="#39ff68";
+  displayQuestion();
+ }
+}
+
+const gameList=[
+["Space Defender","Shooting","🚀"],
+["Target Practice","Shooting","🎯"],
+["Arcade Blaster","Shooting","👾"],
+["Galaxy Patrol","Shooting","🌌"],
+["Free Fire","Shooting","🔥"],
+["Call of Duty","Shooting","🎖️"],
+["Fortnite","Shooting","🪂"],
+["Speed Racer","Racing","🏎️"],
+["Mario Kart","Racing","🏁"],
+["Sonic Racing","Racing","💨"],
+["Street Racing","Racing","🚗"],
+["Turbo Bikes","Racing","🏍️"],
+["Kart Challenge","Racing","🏎️"],
+["Basketball Stars","Sports","🏀"],
+["Football Challenge","Sports","🏈"],
+["Soccer Skills","Sports","⚽"],
+["Baseball Hero","Sports","⚾"],
+["Hockey Challenge","Sports","🏒"],
+["Magic Quest","Adventure","🧙"],
+["Dragon World","Adventure","🐉"],
+["Treasure Island","Adventure","🏝️"],
+["Jungle Explorer","Adventure","🌴"],
+["Sonic the Hedgehog","Adventure","💨"],
+["Mario Bros","Adventure","🍄"],
+["Donkey Kong","Adventure","🦍"],
+["Minecraft","Adventure","🧱"],
+["Roblox","Adventure","🎮"],
+["Temple Run","Adventure","🏃"],
+["Subway Surfers","Adventure","🚇"],
+["Pet Simulator","Adventure","🐾"],
+["Brain Teasers","Puzzle","🧩"],
+["Color Match","Puzzle","🎨"],
+["Block Puzzle","Puzzle","🧱"],
+["Memory Challenge","Puzzle","🧠"],
+["Angry Birds","Puzzle","🐦"],
+["Geometry Dash","Arcade","🔷"],
+["Mario Party","Arcade","⭐"],
+["Retro Arcade","Arcade","👾"],
+["Pixel Runner","Arcade","🏃"],
+["Street Fighter","Fighting","🥊"],
+["Ninja Challenge","Fighting","🥷"]
+];
+
+const officialGames=[
+["Fortnite","🪂","https://www.fortnite.com/"],
+["Roblox","🧱","https://www.roblox.com/"],
+["Call of Duty","🎖️","https://www.callofduty.com/"],
+["Free Fire","🔥","https://ff.garena.com/"],
+["Sonic","💨","https://www.sonicthehedgehog.com/"],
+["Mario Kart","🏎️","https://mariokart8.nintendo.com/"]
+];
+
+function renderGames(){
+ const search=document.getElementById("search").value.toLowerCase();
+ const container=document.getElementById("games");
+ container.innerHTML="";
+
+ const filtered=gameList.filter(game=>
+ (category==="All"||(category==="Favorites"&&favorites.includes(game[0]))||game[1]===category)
+ &&game[0].toLowerCase().includes(search)
+ );
+
+ filtered.forEach(game=>{
+  const card=document.createElement("div");
+  card.className="card";
+  const emoji=document.createElement("div");
+  emoji.className="emoji";
+  emoji.textContent=game[2];
+  const title=document.createElement("h3");
+  title.textContent=game[0];
+  const type=document.createElement("p");
+  type.textContent=game[1]+" Game";
+  const play=document.createElement("button");
+  play.className="play";
+  play.textContent="Find Game";
+  play.onclick=()=>openOfficial(game[0]);
+  const fav=document.createElement("button");
+  fav.textContent=favorites.includes(game[0])?"❤️ Saved":"♡ Favorite";
+  fav.onclick=()=>toggleFavorite(game[0]);
+  card.append(emoji,title,type,play,fav);
+  container.appendChild(card);
+ });
+
+ if(!filtered.length)container.textContent="No games found.";
+}
+
+function showCategory(name){
+ category=name;
+ document.getElementById("heading").textContent=
+ name==="All"?"🔥 ALL GAMES":"🎮 "+name.toUpperCase()+" GAMES";
+ renderGames();
+}
+
+function showFavorites(){
+ category="Favorites";
+ document.getElementById("heading").textContent="❤️ FAVORITES";
+ renderGames();
+}
+
+function toggleFavorite(name){
+ favorites=favorites.includes(name)?
+ favorites.filter(x=>x!==name):[...favorites,name];
+ localStorage.setItem("cashFavorites",JSON.stringify(favorites));
+ renderGames();
+}
+
+function openOfficial(name){
+ const match=officialGames.find(g=>g[0].toLowerCase()===name.toLowerCase());
+ const url=match?match[2]:
+ "https://www.google.com/search?q="+encodeURIComponent(name+" official game");
+ window.open(url,"_blank","noopener,noreferrer");
+}
+
+function renderOfficial(){
+ const container=document.getElementById("official");
+ officialGames.forEach(game=>{
+  const card=document.createElement("div");
+  card.className="card";
+  const emoji=document.createElement("div");
+  emoji.className="emoji";
+  emoji.textContent=game[1];
+  const title=document.createElement("h3");
+  title.textContent=game[0];
+  const button=document.createElement("button");
+  button.className="play";
+  button.textContent="Official Website";
+  button.onclick=()=>window.open(game[2],"_blank","noopener,noreferrer");
+  card.append(emoji,title,button);
+  container.appendChild(card);
+ });
+}
+
+displayQuestion();
+</script>
+</body>
+</html>
